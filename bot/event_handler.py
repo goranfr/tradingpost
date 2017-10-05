@@ -1,6 +1,6 @@
 import json
 import logging
-import re
+from re import search
 
 logger = logging.getLogger(__name__)
 
@@ -32,29 +32,29 @@ class RtmEventHandler(object):
             pass
 
     def _handle_message(self, event):
-        # filter out messages from the bot itself
-        if 'user' in event and not self.clients.is_message_from_me(event['user']):
+        # filter out messages from the bot itself, and from non-users (eg. webhooks)
+        if ('user' in event) and (not self.clients.is_message_from_me(event['user'])):
 
-            msg_txt = event['text']
+            msg_txt = event['text'].lower()
 
-            if self.clients.is_bot_mention(msg_txt):
+            if self.clients.is_bot_mention(event['text']):
                 # e.g. user typed: "@pybot tell me a joke!"
-                if 'help' in msg_txt:
+                if search('help', msg_txt):
                     self.msg_writer.write_help_message(event['channel'])
-                elif re.search('hi|hey|hello|howdy', msg_txt):
-                    self.msg_writer.write_greeting(event['channel'], event['user'])
-                elif 'joke' in msg_txt:
+                elif search('joke', msg_txt):
                     self.msg_writer.write_joke(event['channel'])
+                elif search('hi|hey|hello|howdy', msg_txt):
+                    self.msg_writer.write_greeting(event['channel'], event['user'])
                 else:
                     self.msg_writer.write_prompt(event['channel'])
-            elif re.search('!card|!oracle|!price|!pwp', msg_txt):
+            elif search('!card|!oracle|!price|!pwp', msg_txt):
                 if msg_txt.startswith('!card '):
-                    self.msg_writer.write_card(event['channel'], msg_txt[6:])
+                    self.msg_writer.write_card(event['channel'], msg_txt[5:].strip())
                 elif msg_txt.startswith('!oracle '):
-                    self.msg_writer.write_oracle(event['channel'], msg_txt[8:])
+                    self.msg_writer.write_oracle(event['channel'], msg_txt[7:].strip())
                 elif msg_txt.startswith('!price '):
-                    self.msg_writer.write_price(event['channel'], msg_txt[7:])
+                    self.msg_writer.write_price(event['channel'], msg_txt[6:].strip())
                 elif msg_txt.startswith('!pwp '):
-                    self.msg_writer.write_pwp(event['channel'], msg_txt[5:])
+                    self.msg_writer.write_pwp(event['channel'], msg_txt[4:].strip())
             else:
                 pass
